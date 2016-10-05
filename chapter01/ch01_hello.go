@@ -6,6 +6,7 @@ import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
+	"log"
 	"net/http"
 	"os"
 )
@@ -63,6 +64,23 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(q)
 }
 
+func GetUser(w http.ResponseWriter, r *http.Request) {
+	urlParams := mux.Vars(r)
+	id := urlParams["id"]
+	readUser := User{}
+	err := database.QueryRow("select * from users where user_id=?", id).
+		Scan(&readUser.ID, &readUser.Name, &readUser.First, &readUser.Last, &readUser.Email)
+	switch {
+	case err == sql.ErrNoRows:
+		fmt.Fprint(w, "No such user")
+	case err != nil:
+		log.Fatal(err.Error())
+	default:
+		output, _ := json.Marshal(readUser)
+		fmt.Fprintf(w, string(output))
+	}
+}
+
 func main() {
 	db, err := sql.Open("mysql", "gosocnet:gosocnet@/social_network")
 	if err != nil {
@@ -74,6 +92,7 @@ func main() {
 	routes := mux.NewRouter()
 	routes.HandleFunc("/api/{user:[0-9]+}", Hello)
 	routes.HandleFunc("/api/user/create", CreateUser).Methods("GET")
+	routes.HandleFunc("/api/user/read/{id:[0-9]+}", GetUser)
 	http.Handle("/", routes)
 	http.ListenAndServe(":8080", nil)
 }
