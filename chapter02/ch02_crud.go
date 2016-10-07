@@ -49,8 +49,15 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func UsersRetrieve(w http.ResponseWriter, r *http.Request) {
+	start := 0
+	limit := 10
+	next := start + limit
+
 	w.Header().Set("Pragma", "no-cache")
-	rows, _ := database.Query("select * from users LIMIT 10")
+	w.Header().Set("Link", "<http://localhost:8080/api/users?start="+string(next)+
+		"; rel=\"next\"")
+
+	rows, _ := database.Query("select * from users LIMIT ?", limit)
 	response := Users{}
 	for rows.Next() {
 		user := User{}
