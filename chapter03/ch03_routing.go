@@ -2,12 +2,14 @@ package main
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/rpc"
 	rjson "github.com/gorilla/rpc/json"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -72,6 +74,16 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 	newUser.Email = r.FormValue("email")
 	newUser.First = r.FormValue("first")
 	newUser.Last = r.FormValue("last")
+
+	fileString := ""
+	f, _, err := r.FormFile("image1")
+	if err != nil {
+		fmt.Println(err.Error())
+	} else {
+		fileData, _ := ioutil.ReadAll(f)
+		fileString = base64.StdEncoding.EncodeToString(fileData)
+	}
+
 	output, err := json.Marshal(newUser)
 	fmt.Println("output:", string(output))
 	if err != nil {
@@ -81,7 +93,8 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 	response := CreateResponse{}
 	query := "INSERT INTO users set user_nickname='" + newUser.Name +
 		"', user_first='" + newUser.First +
-		"', user_last='" + newUser.Last + "', user_email='" + newUser.Email + "'"
+		"', user_last='" + newUser.Last + "', user_email='" + newUser.Email +
+		"', user_image='" + fileString + "'"
 
 	q, err := database.Exec(query)
 	if err != nil {

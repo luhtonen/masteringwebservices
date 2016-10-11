@@ -51,3 +51,11 @@ CREATE TABLE users_relationships (
     INDEX from_user_id_to_user_id_users_relationship_type (from_user_id, to_user_id, users_relationship_type)
 );
 ```
+
+## Addition for Chapter 3
+Add new field to `users` table:
+
+```
+ALTER TABLE users
+  ADD COLUMN user_image MEDIUMBLOB NOT NULL AFTER user_email;
+```
