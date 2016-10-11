@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -30,7 +31,39 @@ type Users struct {
 }
 
 type CreateResponse struct {
-	Error string `json:"error"`
+	Error     string `json:"error"`
+	ErrorCode int    `json:"code"`
+}
+
+type ErrMsg struct {
+	ErrCode    int
+	StatusCode int
+	Msg        string
+}
+
+func errorMessages(err int64) ErrMsg {
+	var em ErrMsg
+	errorMessage := ""
+	statusCode := 200
+	errorCode := 0
+	switch err {
+	case 1062:
+		errorMessage = "Duplicated entry"
+		errorCode = 10
+		statusCode = 409
+	}
+	em.ErrCode = errorCode
+	em.StatusCode = statusCode
+	em.Msg = errorMessage
+	return em
+}
+
+func dbErrorParse(err string) (string, int64) {
+	parts := strings.Split(err, ":")
+	errorMessage := parts[1]
+	code := strings.Split(parts[0], "Error ")
+	errorCode, _ := strconv.ParseInt(code[1], 10, 32)
+	return errorMessage, errorCode
 }
 
 func UserCreate(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +85,12 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 
 	q, err := database.Exec(query)
 	if err != nil {
-		response.Error = err.Error()
+		errorMessage, errorCode := dbErrorParse(err.Error())
+		fmt.Println(errorMessage)
+		errMsg := errorMessages(errorCode)
+		response.Error = errMsg.Msg
+		response.ErrorCode = errMsg.ErrCode
+		http.Error(w, "Conflict", errMsg.StatusCode)
 	}
 	fmt.Println(q)
 	createOutput, _ := json.Marshal(response)
@@ -122,7 +160,9 @@ curl -X POST -H "Content-Type: application/json" -d '{"method":"StringService.Le
 */
 
 /* error test:
-curl -X POST -d 'user=edu&email=edufinn&first=Edu&last=Finn' http://localhost:8080/api/users
+curl -d 'user=edu&email=edufinn&first=Edu&last=Finn' http://localhost:8080/api/users
+same but more verbose
+curl -v -d 'user=edu&email=edufinn&first=Edu&last=Finn' http://localhost:8080/api/users
 */
 func main() {
 	db, err := sql.Open("mysql", "gosocnet:gosocnet@/social_network")
