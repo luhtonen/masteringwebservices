@@ -122,7 +122,7 @@ curl -X POST -H "Content-Type: application/json" -d '{"method":"StringService.Le
 */
 
 /* error test:
-curl -X POST -d '{name=edu&email=edufinn&first=Edu&last=Finn}' http://localhost:8080/api/users
+curl -X POST -d 'user=edu&email=edufinn&first=Edu&last=Finn' http://localhost:8080/api/users
 */
 func main() {
 	db, err := sql.Open("mysql", "gosocnet:gosocnet@/social_network")
