@@ -77,3 +77,12 @@ openssl ecparam -genkey -name secp384r1 -out server.key
 ```sh
 openssl req -new -x509 -sha256 -key server.key -out server.pem -days 3650
 ```
+
+## Adding a password and a salt field to the database
+
+```
+ALTER TABLE users
+  ADD COLUMN user_password VARCHAR(1024) NOT NULL AFTER user_nickname,
+  ADD COLUMN user_salt VARCHAR(128) NOT NULL AFTER user_password,
+  ADD INDEX user_password_user_salt (user_password, user_salt);
+```
