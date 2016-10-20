@@ -25,3 +25,7 @@ _testmain.go
 *.test
 *.prof
 
+# Certificate files
+*.key
+*.pem
+*.crt
