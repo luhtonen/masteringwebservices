@@ -31,7 +31,7 @@ type Users struct {
 	Users []User `json:"users"`
 }
 
-type CreateResponse struct {
+type UserResponse struct {
 	Error     string `json:"error"`
 	ErrorCode int    `json:"code"`
 }
@@ -45,6 +45,10 @@ func errorMessages(err int64) (int, int, string) {
 		errorMessage = "Duplicated entry"
 		errorCode = 10
 		statusCode = 409
+	default:
+		errorMessage = http.StatusText(int(err))
+		errorCode = 0
+		statusCode = int(err)
 	}
 	return errorCode, statusCode, errorMessage
 }
@@ -95,7 +99,7 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Something went wrong", err.Error())
 	}
 
-	response := CreateResponse{}
+	response := UserResponse{}
 	query := "INSERT INTO users set user_nickname='" + newUser.Name +
 		"', user_first='" + newUser.First +
 		"', user_last='" + newUser.Last + "', user_email='" + newUser.Email +
@@ -132,7 +136,7 @@ func UsersRetrieve(w http.ResponseWriter, r *http.Request) {
 		rows.Scan(&user.ID, &user.Name, &user.First, &user.Last, &user.Email)
 		response.Users = append(response.Users, user)
 	}
-	output, _ := setFormat(response)
+	output := setFormat(response)
 	fmt.Fprint(w, string(output))
 }
 
@@ -154,6 +158,43 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func UsersUpdate(w http.ResponseWriter, r *http.Request) {
+	response := UserResponse{}
+	params := mux.Vars(r)
+	uid := params["id"]
+	email := r.FormValue("email")
+
+	var userCount int
+	err := database.QueryRow("SELECT COUNT(user_id) FROM users WHERE user_id=?", uid).
+		Scan(&userCount)
+
+	if userCount == 0 {
+		errCode, httpCode, msg := errorMessages(404)
+		log.Println(errCode)
+		log.Println(w, msg, httpCode)
+		response.Error = msg
+		response.ErrorCode = errCode
+		http.Error(w, msg, httpCode)
+	} else if err != nil {
+		log.Println(err.Error())
+	} else {
+		_, uperr := database.Exec("UPDATE users set user_email=? where user_id=?", email, uid)
+		if uperr != nil {
+			_, errorCode := dbErrorParse(uperr.Error())
+			_, httpCode, msg := errorMessages(errorCode)
+
+			response.Error = msg
+			response.ErrorCode = httpCode
+			http.Error(w, msg, httpCode)
+		} else {
+			response.Error = "success"
+			response.ErrorCode = 0
+			output := setFormat(response)
+			fmt.Fprintln(w, string(output))
+		}
+	}
+}
+
 func StartServer() {
 	db, err := sql.Open("mysql", "gosocnet:gosocnet@/social_network")
 	if err != nil {
@@ -165,7 +206,8 @@ func StartServer() {
 	routes := mux.NewRouter()
 	routes.HandleFunc("/api/users", UserCreate).Methods("POST")
 	routes.HandleFunc("/api/users", UsersRetrieve).Methods("GET")
-	routes.HandleFunc("/api/user/{id:[0-9]+}", GetUser).Methods("GET")
+	routes.HandleFunc("/api/users/{id:[0-9]+}", GetUser).Methods("GET")
+	routes.HandleFunc("/api/users/{id:[0-9]+}", UsersUpdate).Methods("PUT")
 	http.Handle("/", routes)
 
 	fmt.Println("Starting service...")
