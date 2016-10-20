@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"database/sql"
@@ -209,7 +209,7 @@ func UsersUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func main() {
+func StartServer() {
 	db, err := sql.Open("mysql", "gosocnet:gosocnet@/social_network")
 	if err != nil {
 		fmt.Println("cannot connec to database", err.Error())
