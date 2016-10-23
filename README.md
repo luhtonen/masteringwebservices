@@ -86,3 +86,15 @@ ALTER TABLE users
   ADD COLUMN user_salt VARCHAR(128) NOT NULL AFTER user_password,
   ADD INDEX user_password_user_salt (user_password, user_salt);
 ```
+
+## Adding a table for client credentials
+
+```
+CREATE TABLE api_credentials (
+  user_id INT(10) UNSIGNED NOT NULL,
+  consumer_key VARCHAR(128) NOT NULL,
+  consumer_secret VARCHAR(128) NOT NULL,
+  callback_url VARCHAR(256) NOT NULL
+  CONSTRAINT FK__users FOREIGN KEY (user_id) REFERENCES users (user_id) ON UPDATE NO ACTION ON DELETE NO ACTION
+)
+```
